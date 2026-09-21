@@ -58,3 +58,47 @@ export async function pcPost<T>(path: string, body: unknown = {}): Promise<T> {
   if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
   return res.json() as Promise<T>;
 }
+
+/** Lenient POST: some endpoints return 200 with an empty body when
+ *  there is no data. Returns null instead of throwing on bad JSON. */
+export async function pcPostLoose<T>(path: string, body: unknown = {}): Promise<T | null> {
+  const res = await fetch(`/api/pc/${path.replace(/^\//, "")}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
+  const text = await res.text();
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** For endpoints that return plain text (e.g. "success"). */
+export async function pcPostText(path: string, body: unknown = {}): Promise<string> {
+  const res = await fetch(`/api/pc/${path.replace(/^\//, "")}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
+  return res.text();
+}
+
+/** For multipart uploads (answer papers, activity files). */
+export async function pcPostForm<T>(path: string, form: FormData): Promise<T> {
+  const res = await fetch(`/api/pc/${path.replace(/^\//, "")}`, {
+    method: "POST",
+    body: form,
+  });
+  if (!res.ok) throw new Error(`POST ${path} failed: ${res.status}`);
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return text as unknown as T;
+  }
+}

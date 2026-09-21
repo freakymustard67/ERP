@@ -1,5 +1,6 @@
 "use client";
 
+import FeedbackForm from "@/components/FeedbackForm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -130,6 +131,14 @@ export default function HomeworkPage() {
                 </p>
               )}
               <p className="mt-1 text-xs text-zinc-500">{fmtMeta(it)}</p>
+              {studentId && typeof it.id === "number" && (
+                <FeedbackForm
+                  studentId={studentId}
+                  dailyreportId={it.id}
+                  studentFeedbackId={Number(it.studentFeedbackId ?? 0)}
+                  category="HOMEWORK"
+                />
+              )}
             </article>
           ))}
         </section>

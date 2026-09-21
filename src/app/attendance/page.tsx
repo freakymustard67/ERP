@@ -110,6 +110,12 @@ export default function AttendancePage() {
           ← Back
         </Link>
         <h1 className="text-2xl font-semibold">Absent Report</h1>
+        <Link
+          href="/leave"
+          className="ml-auto rounded border px-3 py-1 text-sm"
+        >
+          Apply leave →
+        </Link>
       </header>
 
       <StudentPicker

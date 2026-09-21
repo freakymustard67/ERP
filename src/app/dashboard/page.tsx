@@ -3,21 +3,61 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { parentBadging } from "@/lib/more";
 import {
   clearSession,
   loadSession,
-  pcPost,
   saveSession,
   type Session,
 } from "@/lib/session";
 
-const QUICK_LINKS = [
-  { href: "/circular", label: "Circular", desc: "Dear Parents notices" },
-  { href: "/daily-report", label: "Day report / Homework", desc: "dailyreport/dayReport" },
-  { href: "#", label: "Fees & receipts", desc: "loadFeePayment" },
-  { href: "/attendance", label: "Attendance", desc: "absent report" },
-  { href: "/marks", label: "Exams & marks card", desc: "progress cards + PDF" },
-  { href: "#", label: "Timetable", desc: "loadClassTimetable" },
+type Group = {
+  title: string;
+  links: { href: string; label: string; desc: string; badge?: string }[];
+};
+
+const GROUPS: Group[] = [
+  {
+    title: "Notices",
+    links: [
+      { href: "/circular", label: "Circular", desc: "Dear Parents notices", badge: "circular" },
+      { href: "/newsletter", label: "Newsletter", desc: "files & announcements", badge: "newsletter" },
+      { href: "/gallery", label: "Gallery", desc: "school photos", badge: "gallery" },
+      { href: "/calendar", label: "Calendar", desc: "events & holidays" },
+    ],
+  },
+  {
+    title: "Daily report",
+    links: [
+      { href: "/daily-report", label: "Day report", desc: "per date + feedback" },
+      { href: "/daily-report/homework", label: "Homework", desc: "full history" },
+      { href: "/daily-report/portion", label: "Portion taken", desc: "full history" },
+      { href: "/daily-report/files", label: "Files & images", desc: "downloads + upload" },
+      { href: "/activities", label: "Activities", desc: "LMS assignments" },
+    ],
+  },
+  {
+    title: "Exams & attendance",
+    links: [
+      { href: "/exams", label: "Exams", desc: "details + reports" },
+      { href: "/marks", label: "Marks card", desc: "progress cards + PDF" },
+      { href: "/timetable", label: "Timetable", desc: "class schedule" },
+      { href: "/hallticket", label: "Hall ticket", desc: "exam hall ticket" },
+      { href: "/online-class", label: "Online class", desc: "live class status" },
+      { href: "/previous-classes", label: "Previous classes", desc: "past reports" },
+      { href: "/attendance", label: "Attendance", desc: "absent report" },
+      { href: "/leave", label: "Apply leave", desc: "leave form" },
+    ],
+  },
+  {
+    title: "More",
+    links: [
+      { href: "/medical", label: "Medical consent", desc: "health conditions" },
+      { href: "/transport", label: "Transport", desc: "bus tracking" },
+      { href: "/library", label: "Library", desc: "book history" },
+      { href: "/feedback", label: "Feedback", desc: "history + report issue" },
+    ],
+  },
 ];
 
 export default function DashboardPage() {
@@ -25,8 +65,7 @@ export default function DashboardPage() {
   // null on first render on BOTH server and client (hydration-safe);
   // session is loaded after mount.
   const [session, setSession] = useState<Session | null>(null);
-  const [profile, setProfile] = useState<string>("");
-  const [status, setStatus] = useState("");
+  const [badges, setBadges] = useState<Record<string, number>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -38,14 +77,16 @@ export default function DashboardPage() {
         return;
       }
       setSession(s);
-      pcPost(`/profile.html?parentId=${s.parent.id}&schoolCode=${s.schoolCode}`, "")
-        .then((d) => {
-          if (!cancelled) setProfile(JSON.stringify(d).slice(0, 600));
+      parentBadging(s.parent.id, s.schoolId)
+        .then((b) => {
+          if (cancelled) return;
+          setBadges({
+            circular: Number(b.circularCount ?? 0),
+            newsletter: Number(b.newsLetterCount ?? 0),
+            gallery: Number(b.galleryCount ?? 0),
+          });
         })
-        .catch((e) => {
-          if (!cancelled)
-            setStatus(`Profile load failed: ${(e as Error).message}`);
-        });
+        .catch(() => {});
     });
     return () => {
       cancelled = true;
@@ -111,25 +152,33 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <section className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {QUICK_LINKS.map((q) => (
-          <Link
-            key={q.label}
-            href={q.href}
-            className="rounded border p-3 hover:bg-zinc-50"
-          >
-            <div className="font-medium">{q.label}</div>
-            <div className="text-xs text-zinc-500">{q.desc} — coming in v1 next</div>
-          </Link>
-        ))}
-      </section>
-
-      {profile && (
-        <section className="rounded bg-zinc-50 p-3 text-xs text-zinc-700">
-          profile.html preview: {profile}…
+      {GROUPS.map((g) => (
+        <section key={g.title} className="flex flex-col gap-2">
+          <h2 className="text-sm font-medium text-zinc-600">{g.title}</h2>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {g.links.map((q) => (
+              <Link
+                key={q.label}
+                href={q.href}
+                className="rounded border bg-white p-3 shadow-sm hover:bg-zinc-50"
+              >
+                <div className="flex items-center justify-between font-medium">
+                  {q.label}
+                  {q.badge && (badges[q.badge] ?? 0) > 0 && (
+                    <span className="rounded-full bg-red-600 px-2 py-0.5 text-xs text-white">
+                      {badges[q.badge]}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-zinc-500">{q.desc}</div>
+              </Link>
+            ))}
+          </div>
         </section>
-      )}
-      {status && <p className="text-sm text-red-700">{status}</p>}
+      ))}
+
+      <div className="pb-8" />
+      <div className="pb-8" />
     </main>
   );
 }

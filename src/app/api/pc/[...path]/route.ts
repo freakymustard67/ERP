@@ -8,14 +8,14 @@ async function proxy(req: Request, ctx: RouteContext<"/api/pc/[...path]">) {
   const rel = (path ?? []).join("/");
   const target = resolveUpstream(rel, incoming.search);
 
-  // Don't forward browser-only headers; keep it minimal like the app.
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
+  // Forward the incoming content type (JSON or multipart for file uploads).
+  const headers: Record<string, string> = {};
+  const contentType = req.headers.get("content-type");
+  if (contentType) headers["Content-Type"] = contentType;
   const body =
     req.method === "GET" || req.method === "HEAD"
       ? undefined
-      : await req.text();
+      : await req.arrayBuffer();
 
   const upstream = await fetch(target, {
     method: req.method,
@@ -24,10 +24,12 @@ async function proxy(req: Request, ctx: RouteContext<"/api/pc/[...path]">) {
     redirect: "follow",
   });
 
-  const text = await upstream.text();
-  return new Response(text, {
+  const buf = await upstream.arrayBuffer();
+  const upstreamType =
+    upstream.headers.get("content-type") || "application/json";
+  return new Response(buf, {
     status: upstream.status,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": upstreamType },
   });
 }
 

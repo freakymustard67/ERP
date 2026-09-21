@@ -1,5 +1,7 @@
 "use client";
 
+import AnswerUpload from "@/components/AnswerUpload";
+import FeedbackForm from "@/components/FeedbackForm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,7 +16,17 @@ import {
 } from "@/lib/daily";
 import { loadSession, saveSession, type Session } from "@/lib/session";
 
-function ItemCard({ item }: { item: DayItem }) {
+function ItemCard({
+  item,
+  studentId,
+  category,
+  onSaved,
+}: {
+  item: DayItem;
+  studentId: number;
+  category: string;
+  onSaved: () => void;
+}) {
   return (
     <div className="rounded-lg border bg-white p-3 shadow-sm">
       {item.subject && <p className="font-medium">{item.subject}</p>}
@@ -39,11 +51,41 @@ function ItemCard({ item }: { item: DayItem }) {
           Download {fileName(item.fileUrl).slice(0, 28)}
         </a>
       )}
+      <div className="flex flex-wrap items-center gap-2">
+        {typeof item.id === "number" && (
+          <FeedbackForm
+            studentId={studentId}
+            dailyreportId={item.id}
+            studentFeedbackId={Number(item.studentFeedbackId ?? 0)}
+            category={category}
+            onSaved={onSaved}
+          />
+        )}
+        {item.fileUrl && item.uploadEnable && typeof item.id === "number" && (
+          <AnswerUpload
+            studentId={studentId}
+            dailyReportFileId={item.id}
+            onDone={onSaved}
+          />
+        )}
+      </div>
     </div>
   );
 }
 
-function Section({ title, items }: { title: string; items?: DayItem[] | null }) {
+function Section({
+  title,
+  items,
+  studentId,
+  category,
+  onSaved,
+}: {
+  title: string;
+  items?: DayItem[] | null;
+  studentId: number;
+  category: string;
+  onSaved: () => void;
+}) {
   if (!items || items.length === 0) return null;
   return (
     <section className="flex flex-col gap-2">
@@ -51,7 +93,13 @@ function Section({ title, items }: { title: string; items?: DayItem[] | null }) 
         {title} ({items.length})
       </h2>
       {items.map((it, i) => (
-        <ItemCard key={`${title}-${it.id ?? i}`} item={it} />
+        <ItemCard
+          key={`${title}-${it.id ?? i}`}
+          item={it}
+          studentId={studentId}
+          category={category}
+          onSaved={onSaved}
+        />
       ))}
     </section>
   );
@@ -185,13 +233,43 @@ export default function DailyReportPage() {
       {loading && <p className="text-sm text-zinc-500">Loading…</p>}
       {status && <p className="text-sm text-zinc-700">{status}</p>}
 
-      {report && (
+      {report && studentId && (
         <>
-          <Section title="Homework" items={report.paHomeworks} />
-          <Section title="Portion Covered" items={report.paPortioncovereds} />
-          <Section title="Class Test" items={report.paClassTests} />
-          <Section title="Instructions" items={report.paInstructions} />
-          <Section title="Files & Images" items={report.dailyReportFiles} />
+          <Section
+            title="Homework"
+            items={report.paHomeworks}
+            studentId={studentId}
+            category="HOMEWORK"
+            onSaved={() => studentId && date && fetchDay(studentId, date)}
+          />
+          <Section
+            title="Portion Covered"
+            items={report.paPortioncovereds}
+            studentId={studentId}
+            category="PORTIONCOVERED"
+            onSaved={() => studentId && date && fetchDay(studentId, date)}
+          />
+          <Section
+            title="Class Test"
+            items={report.paClassTests}
+            studentId={studentId}
+            category="TEST"
+            onSaved={() => studentId && date && fetchDay(studentId, date)}
+          />
+          <Section
+            title="Instructions"
+            items={report.paInstructions}
+            studentId={studentId}
+            category="INSTRUCTION"
+            onSaved={() => studentId && date && fetchDay(studentId, date)}
+          />
+          <Section
+            title="Files & Images"
+            items={report.dailyReportFiles}
+            studentId={studentId}
+            category="DAILYREPORTFILES"
+            onSaved={() => studentId && date && fetchDay(studentId, date)}
+          />
         </>
       )}
     </main>

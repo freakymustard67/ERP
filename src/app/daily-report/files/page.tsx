@@ -1,5 +1,7 @@
 "use client";
 
+import AnswerUpload from "@/components/AnswerUpload";
+import FeedbackForm from "@/components/FeedbackForm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -122,6 +124,22 @@ export default function FilesPage() {
                   <p className="text-sm text-zinc-600">{f.description}</p>
                 )}
                 <p className="text-xs text-zinc-500">{f.date}</p>
+                {studentId && typeof f.id === "number" && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <FeedbackForm
+                      studentId={studentId}
+                      dailyreportId={f.id}
+                      studentFeedbackId={Number(f.studentFeedbackId ?? 0)}
+                      category="DAILYREPORTFILES"
+                    />
+                    {f.uploadEnable && (
+                      <AnswerUpload
+                        studentId={studentId}
+                        dailyReportFileId={f.id}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
               {f.fileUrl && (
                 <a
