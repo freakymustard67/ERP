@@ -1,0 +1,29 @@
+# Render blueprint for the Instagram watcher backend.
+# Secrets (IG_USER, IG_PASS, CARMEL_PHONE) are NOT stored here —
+# set them in the Render dashboard after first deploy.
+services:
+  - type: web
+    name: carmel-insta-watcher
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: insta-automation
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m src.watch
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: IG_USER
+        sync: false
+      - key: IG_PASS
+        sync: false
+      - key: CARMEL_PHONE
+        sync: false
+      - key: IG_THREAD_IDS
+        value: 340282366841710301281176154729206641683
+      - key: CARMEL_SCHOOL_ID
+        value: "875"
+      - key: CARMEL_STUDENT_IDS
+        value: "1511360"
+      - key: POLL_INTERVAL
+        value: "300"
