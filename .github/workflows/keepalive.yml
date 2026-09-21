@@ -1,0 +1,18 @@
+# Keep the free Render watcher awake: ping /health every 10 minutes so the
+# 5-minute poll loop never sleeps. Manual runs supported via workflow_dispatch.
+name: keepalive-watcher
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping watcher health
+        run: |
+          curl -fsS --max-time 60 --retry 3 --retry-delay 20 \
+            https://carmel-insta-watcher.onrender.com/health
