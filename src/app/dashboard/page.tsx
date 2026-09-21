@@ -15,10 +15,9 @@ const QUICK_LINKS = [
   { href: "/circular", label: "Circular", desc: "Dear Parents notices" },
   { href: "/daily-report", label: "Day report / Homework", desc: "dailyreport/dayReport" },
   { href: "#", label: "Fees & receipts", desc: "loadFeePayment" },
-  { href: "#", label: "Exams & hall tickets", desc: "loadStudentExamReportForParentApp" },
+  { href: "/attendance", label: "Attendance", desc: "absent report" },
+  { href: "/marks", label: "Exams & marks card", desc: "progress cards + PDF" },
   { href: "#", label: "Timetable", desc: "loadClassTimetable" },
-  { href: "#", label: "Attendance", desc: "attendanceList" },
-  { href: "#", label: "Circulars", desc: "app/circular" },
 ];
 
 export default function DashboardPage() {
