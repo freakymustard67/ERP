@@ -53,6 +53,30 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"status": "not found"})
 
 
+def ensure_session_file(path: str) -> None:
+    """Seed the IG session from IG_SESSION_JSON env (first boot on Render,
+    where the gitignored session file doesn't exist). Never logs the value."""
+    from pathlib import Path
+
+    p = Path(path)
+    if p.exists():
+        return
+    blob = os.environ.get("IG_SESSION_JSON", "")
+    if not blob.strip():
+        return
+    try:
+        json.loads(blob)  # validate before writing
+    except json.JSONDecodeError as exc:
+        print(f"[watch] IG_SESSION_JSON invalid: {exc}", flush=True)
+        return
+    p.parent.mkdir(parents=True, exist_ok=True)
+    # 0o600 via opener so the file is never world-readable, even briefly.
+    fd = os.open(p, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as fh:
+        fh.write(blob)
+    print("[watch] wrote IG session from IG_SESSION_JSON", flush=True)
+
+
 def serve_health(port: int) -> threading.Thread:
     server = HTTPServer(("0.0.0.0", port), Handler)
     t = threading.Thread(target=server.serve_forever, daemon=True)
@@ -106,6 +130,8 @@ def main() -> int:
 
     interval = int(os.environ.get("POLL_INTERVAL", "300"))
     port = int(os.environ.get("PORT", "8000"))
+
+    ensure_session_file(Config.from_env().session_file)
     serve_health(port)
     print(f"[watch] health on :{port}, poll every {interval}s", flush=True)
 
