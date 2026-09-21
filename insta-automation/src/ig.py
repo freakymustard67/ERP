@@ -13,11 +13,14 @@ from instagrapi import Client
 def get_client(username: str, password: str, session_file: str) -> Client:
     if not username or not password:
         raise SystemExit("Missing IG_USER / IG_PASS env vars (never hardcode them).")
-    cl = Client()
+    # override_app_version: IG rejects the library's pinned app version
+    # ("Your version of Instagram is out of date"); this swaps in a
+    # currently supported app profile on both fresh and loaded sessions.
+    cl = Client(override_app_version=True)
     path = Path(session_file)
     if path.exists():
         try:
-            cl.load_settings(str(path))
+            cl.load_settings(str(path), override_app_version=True)
         except Exception:
             pass  # fall through to fresh login
     logged_in = False
