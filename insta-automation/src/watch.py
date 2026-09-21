@@ -125,6 +125,24 @@ def run_cycle(cfg) -> str:
     return "; ".join(parts)
 
 
+def sync_gist(gist, pushed: dict, pairs: list[tuple[str, str]]) -> None:
+    """Push changed state files to the gist. Mutates `pushed` cache."""
+    from pathlib import Path
+
+    changed: dict[str, str] = {}
+    for local, name in pairs:
+        try:
+            content = Path(local).read_text()
+        except (FileNotFoundError, OSError):
+            continue
+        if pushed.get(name) != content:
+            changed[name] = content
+    if changed:
+        gist.push(changed)
+        pushed.update(changed)
+        print(f"[watch] pushed {sorted(changed)} to gist", flush=True)
+
+
 def main() -> int:
     from src.config import Config
 
@@ -134,6 +152,33 @@ def main() -> int:
     cfg0 = Config.from_env()
     ensure_file_from_env(cfg0.session_file, "IG_SESSION_JSON")
     ensure_file_from_env(cfg0.state_file, "SENT_STATE_JSON")
+
+    import os as _os
+
+    gist = None
+    pushed: dict[str, str] = {}
+    if _os.environ.get("GITHUB_TOKEN") and _os.environ.get("GIST_ID"):
+        from src.state import GistStore
+
+        gist = GistStore(_os.environ["GITHUB_TOKEN"], _os.environ["GIST_ID"])
+        try:
+            remote = gist.pull()
+            from pathlib import Path as _Path
+
+            for name, local in (
+                ("ig_session.json", cfg0.session_file),
+                ("sent_circulars.json", cfg0.state_file),
+            ):
+                if name in remote and not _Path(local).exists():
+                    _Path(local).parent.mkdir(parents=True, exist_ok=True)
+                    fd = _os.open(local, _os.O_WRONLY | _os.O_CREAT | _os.O_TRUNC, 0o600)
+                    with _os.fdopen(fd, "w") as fh:
+                        fh.write(remote[name])
+                    print(f"[watch] restored {local} from gist", flush=True)
+            pushed = dict(remote)
+        except Exception as exc:
+            print(f"[watch] gist pull failed (local-only mode): {exc}", flush=True)
+            gist = None
     serve_health(port)
     print(f"[watch] health on :{port}, poll every {interval}s", flush=True)
 
@@ -153,6 +198,18 @@ def main() -> int:
                 result = run_cycle(cfg)
             except KeyboardInterrupt:
                 break
+            if gist is not None:
+                try:
+                    sync_gist(
+                        gist,
+                        pushed,
+                        [
+                            (cfg.session_file, "ig_session.json"),
+                            (cfg.state_file, "sent_circulars.json"),
+                        ],
+                    )
+                except Exception as exc:
+                    print(f"[watch] gist push failed: {exc}", flush=True)
             with _state_lock:
                 _info["cycles"] += 1
                 _info["last_cycle"] = time.strftime("%Y-%m-%d %H:%M:%S")

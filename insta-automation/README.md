@@ -80,8 +80,11 @@ Deploys from this repo (`rootDir: insta-automation`, see `/render.yaml`):
 - First run logs in with `IG_USER`/`IG_PASS`, reuses the session file after that.
 
 Caveats: free web services sleep after 15 min without inbound traffic, and the
-disk is ephemeral (restarts lose `data/*.json`, so recent items may resend
-once). For true 24/7 immediacy use a Starter plan (always-on + persistent disk).
+disk is ephemeral — so state (IG session + sent ids) syncs to a **secret GitHub
+Gist** (`src/state.py`, needs `GIST_ID` + `GITHUB_TOKEN` with gist scope):
+fresh boots restore from the gist, changed files are pushed back after each
+cycle. The included GitHub Actions pinger keeps the service awake for free.
+For true 24/7 immediacy use a Starter plan (always-on + persistent disk).
 
 ## Safety
 

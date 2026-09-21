@@ -27,3 +27,7 @@ services:
         value: "1511360"
       - key: POLL_INTERVAL
         value: "300"
+      - key: GIST_ID
+        sync: false # secret gist holding ig_session.json + sent_circulars.json
+      - key: GITHUB_TOKEN
+        sync: false # token with gist scope for state sync
